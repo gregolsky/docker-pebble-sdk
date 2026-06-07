@@ -7,18 +7,16 @@ IMAGE="${IMAGE:-pebble-sdk:test}"
 
 echo "==> Smoke test: pebble build using image ${IMAGE}"
 
-# Clean previous build artifacts
-rm -rf "${REPO_ROOT}/test/smoke/build"
-
+# Mount source read-only at /src; copy into /work (owned by the pebble user inside
+# the image) and build there. Avoids host-uid mismatch when runner uid != pebble uid.
 docker run --rm \
-    -v "${REPO_ROOT}/test/smoke":/work \
-    -w /work \
+    -v "${REPO_ROOT}/test/smoke":/src:ro \
     "${IMAGE}" \
-    pebble build
-
-if [ ! -f "${REPO_ROOT}/test/smoke/build/smoke.pbw" ]; then
-    echo "FAIL: smoke.pbw not found after pebble build"
-    exit 1
-fi
-
-echo "PASS: smoke.pbw produced ($(du -h "${REPO_ROOT}/test/smoke/build/smoke.pbw" | cut -f1))"
+    bash -c '
+        set -e
+        cp -r /src/. /work/
+        cd /work
+        pebble build
+        test -f build/smoke.pbw
+        echo "PASS: smoke.pbw produced ($(du -h build/smoke.pbw | cut -f1))"
+    '
