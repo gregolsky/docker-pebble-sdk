@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     gcc \
+    g++ \
     make \
     libc-dev \
     libsdl2-2.0-0 \
@@ -31,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libncurses5-dev \
     xz-utils \
     tk-dev \
+    libboost-python-dev \
+    libboost-system-dev \
+    libboost-iostreams-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Stage 2: install uv + pebble-tool
@@ -57,11 +61,17 @@ ENV HOME=/home/pebble
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV PATH="/opt/uv-tools/pebble-tool/bin:/home/pebble/.local/bin:${PATH}"
 
-# Install pebble-tool via uv
+# Install pebble-tool via uv.
+# stpyv8 (pulled in via pypkjs) has no Linux arm64 wheels; source build requires
+# --no-build-isolation-package so its own settings.py is importable during setup.
 RUN if [ -n "$PEBBLE_TOOL_VERSION" ]; then \
-      uv tool install "pebble-tool==${PEBBLE_TOOL_VERSION}" --python "${PEBBLE_PYTHON_VERSION}"; \
+      uv tool install "pebble-tool==${PEBBLE_TOOL_VERSION}" \
+          --python "${PEBBLE_PYTHON_VERSION}" \
+          --no-build-isolation-package stpyv8; \
     else \
-      uv tool install pebble-tool --python "${PEBBLE_PYTHON_VERSION}"; \
+      uv tool install pebble-tool \
+          --python "${PEBBLE_PYTHON_VERSION}" \
+          --no-build-isolation-package stpyv8; \
     fi \
     && pebble --version
 

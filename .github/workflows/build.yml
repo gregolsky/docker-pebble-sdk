@@ -8,15 +8,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runs-on: ubuntu-latest
+          - platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.runs-on }}
+
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Load versions
         run: |
@@ -24,11 +28,14 @@ jobs:
           echo "PEBBLE_TOOL_VERSION=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_ENV"
           echo "PEBBLE_SDK_VERSION=${PEBBLE_SDK_VERSION}" >> "$GITHUB_ENV"
 
-      - name: Build (amd64 + arm64, no push)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.platform }}
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: false
           load: false
           build-args: |
@@ -38,7 +45,22 @@ jobs:
           cache-to: type=gha,mode=max
           tags: pebble-sdk:ci
 
-      # Smoke test on amd64 (load single-arch for local testing)
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load versions
+        run: |
+          source versions.env
+          echo "PEBBLE_TOOL_VERSION=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_ENV"
+          echo "PEBBLE_SDK_VERSION=${PEBBLE_SDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build amd64 for smoke test
         uses: docker/build-push-action@v6
         with:
