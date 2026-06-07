@@ -2,7 +2,7 @@
 
 Maintained Docker image for Pebble smartwatch development.
 
-Installs [`pebble-tool`](https://github.com/coredevices/pebble-tool) via `uv` (the official install path per [developer.repebble.com](https://developer.repebble.com/sdk/)) and bakes in the latest Pebble SDK. Multi-arch: `linux/amd64` + `linux/arm64`. Rebuilt automatically each week when either `pebble-tool` or the SDK releases a new version.
+Installs [`pebble-tool`](https://github.com/coredevices/pebble-tool) via `uv` (the official install path per [developer.repebble.com](https://developer.repebble.com/sdk/)) and bakes in the latest Pebble SDK. Platform: `linux/amd64`. Rebuilt automatically each week when either `pebble-tool` or the SDK releases a new version.
 
 See [SPECS.md](SPECS.md) for the full specification.
 
