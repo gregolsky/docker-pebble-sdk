@@ -22,6 +22,16 @@ jobs:
           echo "tool_ver=${LATEST_TOOL_VER}" >> "$GITHUB_OUTPUT"
           echo "sdk_ver=${LATEST_SDK_VER}" >> "$GITHUB_OUTPUT"
 
+      - name: Validate resolved versions
+        run: |
+          TOOL="${{ steps.upstream.outputs.tool_ver }}"
+          SDK="${{ steps.upstream.outputs.sdk_ver }}"
+          if [ -z "$TOOL" ] || [ "$TOOL" = "unknown" ] \
+          || [ -z "$SDK" ] || [ "$SDK" = "unknown" ]; then
+            echo "::error::Failed to resolve upstream versions (tool='$TOOL' sdk='$SDK'). Aborting before opening a PR."
+            exit 1
+          fi
+
       - name: Load current pinned versions
         id: current
         run: |

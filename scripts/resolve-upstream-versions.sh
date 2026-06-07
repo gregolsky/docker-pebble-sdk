@@ -6,13 +6,11 @@
 set -euo pipefail
 
 LATEST_TOOL_VER=$(curl -fsSL "https://pypi.org/pypi/pebble-tool/json" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['info']['version'])")
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['info']['version'])")
 
-# The Pebble SDK manifest endpoint used by pebble-tool itself
-SDK_MANIFEST_URL="https://developer.rebble.io/sdk/update-check.json"
-LATEST_SDK_VER=$(curl -fsSL "${SDK_MANIFEST_URL}" \
-    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['sdkVersion'])" 2>/dev/null \
-    || echo "unknown")
+# Core Devices' Re:Pebble SDK manifest (same endpoint pebble-tool itself queries)
+LATEST_SDK_VER=$(curl -fsSL "https://sdk.repebble.com/v1/files/sdk-core?channel=release" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['files'][-1]['version'])")
 
 echo "LATEST_TOOL_VER=${LATEST_TOOL_VER}"
 echo "LATEST_SDK_VER=${LATEST_SDK_VER}"
