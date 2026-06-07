@@ -140,7 +140,7 @@ OCI standard labels:
 | `org.opencontainers.image.revision` | git SHA |
 | `org.opencontainers.image.created` | ISO 8601 build timestamp |
 | `org.opencontainers.image.description` | Short description |
-| `org.opencontainers.image.licenses` | MIT |
+| `org.opencontainers.image.licenses` | Apache-2.0 |
 
 Custom labels:
 
@@ -255,7 +255,7 @@ The smoke test runs on every PR and both architectures. It validates the entire 
 
 ## License
 
-This repository is MIT licensed. The Pebble SDK and `pebble-tool` are subject to their own licenses; see [developer.repebble.com](https://developer.repebble.com) and the [coredevices/pebble-tool](https://github.com/coredevices/pebble-tool) repository.
+This repository is Apache 2.0 licensed. The Pebble SDK and `pebble-tool` are subject to their own licenses; see [developer.repebble.com](https://developer.repebble.com) and the [coredevices/pebble-tool](https://github.com/coredevices/pebble-tool) repository.
 
 ## References
 

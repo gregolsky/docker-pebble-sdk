@@ -92,7 +92,7 @@ ARG PEBBLE_SDK_VERSION
 
 LABEL org.opencontainers.image.source="https://github.com/gregolsky/docker-pebble-sdk" \
       org.opencontainers.image.description="Maintained Docker image for Pebble watch development — uv + pebble-tool + Pebble SDK" \
-      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       io.pebble.tool.version="${PEBBLE_TOOL_VERSION}" \
       io.pebble.sdk.version="${PEBBLE_SDK_VERSION}"
 

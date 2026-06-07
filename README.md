@@ -1,4 +1,4 @@
-# docker-pebble-sdk
+# 🟦 docker-pebble-sdk
 
 Maintained Docker image for Pebble smartwatch development.
 
@@ -6,7 +6,7 @@ Installs [`pebble-tool`](https://github.com/coredevices/pebble-tool) via `uv` (t
 
 See [SPECS.md](SPECS.md) for the full specification.
 
-## Quick start
+## 🚀 Quick start
 
 ```bash
 # Build a .pbw
@@ -21,7 +21,7 @@ docker run --rm \
   bash -c "pebble build && pebble install --emulator basalt"
 ```
 
-## Current versions
+## 📦 Current versions
 
 | Component | Version |
 |---|---|
@@ -30,7 +30,7 @@ docker run --rm \
 | Python | 3.13 |
 | Node.js | LTS |
 
-## GitHub Actions
+## ⚙️ GitHub Actions
 
 ```yaml
 jobs:
@@ -47,11 +47,11 @@ jobs:
           path: build/*.pbw
 ```
 
-## Registries
+## 🗂️ Registries
 
 - `ghcr.io/gregolsky/pebble-sdk`
 - `docker.io/gregolsky/pebble-sdk`
 
-## License
+## 📄 License
 
-MIT — see [LICENSE](LICENSE). The Pebble SDK and pebble-tool are subject to their own licenses; see [coredevices/pebble-tool](https://github.com/coredevices/pebble-tool).
+Apache 2.0 — see [LICENSE](LICENSE). The Pebble SDK and pebble-tool are subject to their own licenses; see [coredevices/pebble-tool](https://github.com/coredevices/pebble-tool).
