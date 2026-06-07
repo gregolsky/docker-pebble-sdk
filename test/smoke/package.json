@@ -1,0 +1,17 @@
+{
+  "name": "smoke",
+  "version": "1.0.0",
+  "private": true,
+  "pebble": {
+    "displayName": "Smoke",
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "sdkVersion": "3",
+    "targetPlatforms": ["aplite", "basalt", "chalk", "diorite", "emery"],
+    "watchapp": {
+      "watchface": false
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}

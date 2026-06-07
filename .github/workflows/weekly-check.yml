@@ -1,0 +1,77 @@
+name: Weekly Version Check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve latest upstream versions
+        id: upstream
+        run: |
+          source <(bash scripts/resolve-upstream-versions.sh)
+          echo "tool_ver=${LATEST_TOOL_VER}" >> "$GITHUB_OUTPUT"
+          echo "sdk_ver=${LATEST_SDK_VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Load current pinned versions
+        id: current
+        run: |
+          source versions.env
+          echo "tool_ver=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "sdk_ver=${PEBBLE_SDK_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check if bump needed
+        id: check
+        run: |
+          if [ "${{ steps.upstream.outputs.tool_ver }}" = "${{ steps.current.outputs.tool_ver }}" ] \
+          && [ "${{ steps.upstream.outputs.sdk_ver }}" = "${{ steps.current.outputs.sdk_ver }}" ]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Versions already current (pebble-tool ${{ steps.current.outputs.tool_ver }}, SDK ${{ steps.current.outputs.sdk_ver }})"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Bump needed:"
+            echo "  pebble-tool: ${{ steps.current.outputs.tool_ver }} → ${{ steps.upstream.outputs.tool_ver }}"
+            echo "  SDK:         ${{ steps.current.outputs.sdk_ver }} → ${{ steps.upstream.outputs.sdk_ver }}"
+          fi
+
+      - name: Create bump PR
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_TOOL="${{ steps.upstream.outputs.tool_ver }}"
+          NEW_SDK="${{ steps.upstream.outputs.sdk_ver }}"
+          BRANCH="bump/pebble-tool-${NEW_TOOL}-sdk-${NEW_SDK}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "${BRANCH}"
+
+          printf "PEBBLE_TOOL_VERSION=%s\nPEBBLE_SDK_VERSION=%s\n" "${NEW_TOOL}" "${NEW_SDK}" > versions.env
+
+          git add versions.env
+          git commit -m "chore: bump pebble-tool ${NEW_TOOL} / SDK ${NEW_SDK}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --title "chore: bump pebble-tool ${NEW_TOOL} / SDK ${NEW_SDK}" \
+            --body "Automated version bump detected by weekly cron.
+
+          | Component | Old | New |
+          |---|---|---|
+          | pebble-tool | ${{ steps.current.outputs.tool_ver }} | ${NEW_TOOL} |
+          | Pebble SDK | ${{ steps.current.outputs.sdk_ver }} | ${NEW_SDK} |
+
+          Merging this PR will trigger the build workflow. Tag the resulting commit to publish a release." \
+            --head "${BRANCH}" \
+            --base main
