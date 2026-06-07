@@ -122,7 +122,6 @@ jobs:
             type=raw,value=pebble-tool-${{ env.PEBBLE_TOOL_VERSION }}
             type=raw,value=sdk-${{ env.PEBBLE_SDK_VERSION }}
             type=raw,value=pebble-tool-${{ env.PEBBLE_TOOL_VERSION }}-sdk-${{ env.PEBBLE_SDK_VERSION }}
-            type=sha,prefix=sha-
           labels: |
             io.pebble.tool.version=${{ env.PEBBLE_TOOL_VERSION }}
             io.pebble.sdk.version=${{ env.PEBBLE_SDK_VERSION }}
