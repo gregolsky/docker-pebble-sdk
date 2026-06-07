@@ -67,10 +67,12 @@ ENV PATH="/opt/uv-tools/pebble-tool/bin:/home/pebble/.local/bin:${PATH}"
 RUN if [ -n "$PEBBLE_TOOL_VERSION" ]; then \
       uv tool install "pebble-tool==${PEBBLE_TOOL_VERSION}" \
           --python "${PEBBLE_PYTHON_VERSION}" \
+          --with setuptools --with wheel \
           --no-build-isolation-package stpyv8; \
     else \
       uv tool install pebble-tool \
           --python "${PEBBLE_PYTHON_VERSION}" \
+          --with setuptools --with wheel \
           --no-build-isolation-package stpyv8; \
     fi \
     && pebble --version
