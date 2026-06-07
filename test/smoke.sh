@@ -14,8 +14,9 @@ docker run --rm \
     "${IMAGE}" \
     bash -c '
         set -e
-        cp -r /src/. /work/
-        cd /work
+        mkdir /work/smoke
+        cp -r /src/. /work/smoke/
+        cd /work/smoke
         pebble build
         test -f build/smoke.pbw
         echo "PASS: smoke.pbw produced ($(du -h build/smoke.pbw | cut -f1))"
