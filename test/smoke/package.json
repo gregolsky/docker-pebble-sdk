@@ -1,6 +1,7 @@
 {
   "name": "smoke",
   "version": "1.0.0",
+  "author": "smoke",
   "private": true,
   "pebble": {
     "displayName": "Smoke",
