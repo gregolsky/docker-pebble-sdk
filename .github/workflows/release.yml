@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]*.[0-9]*.[0-9]*'
 
 jobs:
   build:
@@ -11,16 +11,19 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Load versions
         run: |
-          source versions.env
-          echo "PEBBLE_TOOL_VERSION=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_ENV"
-          echo "PEBBLE_SDK_VERSION=${PEBBLE_SDK_VERSION}" >> "$GITHUB_ENV"
+          while IFS='=' read -r k v; do
+            case "$k" in
+              PEBBLE_TOOL_VERSION|PEBBLE_SDK_VERSION)
+                [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]] || { echo "::error::bad $k value: $v"; exit 1; }
+                echo "$k=$v" >> "$GITHUB_ENV";;
+            esac
+          done < versions.env
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -75,16 +78,19 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Load versions
         run: |
-          source versions.env
-          echo "PEBBLE_TOOL_VERSION=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_ENV"
-          echo "PEBBLE_SDK_VERSION=${PEBBLE_SDK_VERSION}" >> "$GITHUB_ENV"
+          while IFS='=' read -r k v; do
+            case "$k" in
+              PEBBLE_TOOL_VERSION|PEBBLE_SDK_VERSION)
+                [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]] || { echo "::error::bad $k value: $v"; exit 1; }
+                echo "$k=$v" >> "$GITHUB_ENV";;
+            esac
+          done < versions.env
 
       - name: Download digests
         uses: actions/download-artifact@v4
@@ -127,24 +133,31 @@ jobs:
 
       - name: Create multi-arch manifest (GHCR)
         working-directory: /tmp/digests
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           docker buildx imagetools create \
             $(jq -cr '.tags | map(select(startswith("ghcr.io"))) | map("-t " + .) | join(" ")' \
                 <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/${{ github.repository_owner }}/pebble-sdk@sha256:%s ' *)
+            $(printf 'ghcr.io/%s/pebble-sdk@sha256:%s ' "$REPO_OWNER" *)
 
       - name: Create multi-arch manifest (Docker Hub)
         working-directory: /tmp/digests
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           docker buildx imagetools create \
             $(jq -cr '.tags | map(select(startswith("docker.io"))) | map("-t " + .) | join(" ")' \
                 <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'docker.io/${{ secrets.DOCKERHUB_USERNAME }}/pebble-sdk@sha256:%s ' *)
+            $(printf 'docker.io/%s/pebble-sdk@sha256:%s ' "$DOCKERHUB_USERNAME" *)
 
       - name: Inspect manifest
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          META_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           docker buildx imagetools inspect \
-            ghcr.io/${{ github.repository_owner }}/pebble-sdk:${{ steps.meta.outputs.version }}
+            "ghcr.io/${REPO_OWNER}/pebble-sdk:${META_VERSION}"
 
   release:
     needs: merge
@@ -157,23 +170,30 @@ jobs:
 
       - name: Load versions
         run: |
-          source versions.env
-          echo "PEBBLE_TOOL_VERSION=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_ENV"
-          echo "PEBBLE_SDK_VERSION=${PEBBLE_SDK_VERSION}" >> "$GITHUB_ENV"
+          while IFS='=' read -r k v; do
+            case "$k" in
+              PEBBLE_TOOL_VERSION|PEBBLE_SDK_VERSION)
+                [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]] || { echo "::error::bad $k value: $v"; exit 1; }
+                echo "$k=$v" >> "$GITHUB_ENV";;
+            esac
+          done < versions.env
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "pebble-tool ${{ env.PEBBLE_TOOL_VERSION }} / SDK ${{ env.PEBBLE_SDK_VERSION }}" \
+          gh release create "$REF_NAME" \
+            --title "pebble-tool ${PEBBLE_TOOL_VERSION} / SDK ${PEBBLE_SDK_VERSION}" \
             --notes "## Images
 
           \`\`\`
-          ghcr.io/${{ github.repository_owner }}/pebble-sdk:pebble-tool-${{ env.PEBBLE_TOOL_VERSION }}-sdk-${{ env.PEBBLE_SDK_VERSION }}
-          docker.io/${{ secrets.DOCKERHUB_USERNAME }}/pebble-sdk:pebble-tool-${{ env.PEBBLE_TOOL_VERSION }}-sdk-${{ env.PEBBLE_SDK_VERSION }}
+          ghcr.io/${REPO_OWNER}/pebble-sdk:pebble-tool-${PEBBLE_TOOL_VERSION}-sdk-${PEBBLE_SDK_VERSION}
+          docker.io/${DOCKERHUB_USERNAME}/pebble-sdk:pebble-tool-${PEBBLE_TOOL_VERSION}-sdk-${PEBBLE_SDK_VERSION}
           \`\`\`
 
-          **pebble-tool**: ${{ env.PEBBLE_TOOL_VERSION }}
-          **Pebble SDK**: ${{ env.PEBBLE_SDK_VERSION }}
+          **pebble-tool**: ${PEBBLE_TOOL_VERSION}
+          **Pebble SDK**: ${PEBBLE_SDK_VERSION}
           **Platforms**: linux/amd64"

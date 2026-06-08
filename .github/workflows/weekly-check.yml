@@ -18,14 +18,16 @@ jobs:
       - name: Resolve latest upstream versions
         id: upstream
         run: |
-          source <(bash scripts/resolve-upstream-versions.sh)
-          echo "tool_ver=${LATEST_TOOL_VER}" >> "$GITHUB_OUTPUT"
-          echo "sdk_ver=${LATEST_SDK_VER}" >> "$GITHUB_OUTPUT"
+          out=$(bash scripts/resolve-upstream-versions.sh)
+          tool=$(awk -F= '/^LATEST_TOOL_VER=/{print $2}' <<<"$out")
+          sdk=$(awk  -F= '/^LATEST_SDK_VER=/{print $2}'  <<<"$out")
+          printf 'tool_ver=%s\nsdk_ver=%s\n' "$tool" "$sdk" >> "$GITHUB_OUTPUT"
 
       - name: Validate resolved versions
+        env:
+          TOOL: ${{ steps.upstream.outputs.tool_ver }}
+          SDK: ${{ steps.upstream.outputs.sdk_ver }}
         run: |
-          TOOL="${{ steps.upstream.outputs.tool_ver }}"
-          SDK="${{ steps.upstream.outputs.sdk_ver }}"
           if [ -z "$TOOL" ] || [ "$TOOL" = "unknown" ] \
           || [ -z "$SDK" ] || [ "$SDK" = "unknown" ]; then
             echo "::error::Failed to resolve upstream versions (tool='$TOOL' sdk='$SDK'). Aborting before opening a PR."
@@ -35,31 +37,44 @@ jobs:
       - name: Load current pinned versions
         id: current
         run: |
-          source versions.env
-          echo "tool_ver=${PEBBLE_TOOL_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "sdk_ver=${PEBBLE_SDK_VERSION}" >> "$GITHUB_OUTPUT"
+          while IFS='=' read -r k v; do
+            case "$k" in
+              PEBBLE_TOOL_VERSION)
+                [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]] || { echo "::error::bad $k value: $v"; exit 1; }
+                echo "tool_ver=$v" >> "$GITHUB_OUTPUT";;
+              PEBBLE_SDK_VERSION)
+                [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,3}$ ]] || { echo "::error::bad $k value: $v"; exit 1; }
+                echo "sdk_ver=$v" >> "$GITHUB_OUTPUT";;
+            esac
+          done < versions.env
 
       - name: Check if bump needed
         id: check
+        env:
+          UPSTREAM_TOOL: ${{ steps.upstream.outputs.tool_ver }}
+          UPSTREAM_SDK: ${{ steps.upstream.outputs.sdk_ver }}
+          CURRENT_TOOL: ${{ steps.current.outputs.tool_ver }}
+          CURRENT_SDK: ${{ steps.current.outputs.sdk_ver }}
         run: |
-          if [ "${{ steps.upstream.outputs.tool_ver }}" = "${{ steps.current.outputs.tool_ver }}" ] \
-          && [ "${{ steps.upstream.outputs.sdk_ver }}" = "${{ steps.current.outputs.sdk_ver }}" ]; then
+          if [ "$UPSTREAM_TOOL" = "$CURRENT_TOOL" ] && [ "$UPSTREAM_SDK" = "$CURRENT_SDK" ]; then
             echo "needed=false" >> "$GITHUB_OUTPUT"
-            echo "Versions already current (pebble-tool ${{ steps.current.outputs.tool_ver }}, SDK ${{ steps.current.outputs.sdk_ver }})"
+            echo "Versions already current (pebble-tool ${CURRENT_TOOL}, SDK ${CURRENT_SDK})"
           else
             echo "needed=true" >> "$GITHUB_OUTPUT"
             echo "Bump needed:"
-            echo "  pebble-tool: ${{ steps.current.outputs.tool_ver }} → ${{ steps.upstream.outputs.tool_ver }}"
-            echo "  SDK:         ${{ steps.current.outputs.sdk_ver }} → ${{ steps.upstream.outputs.sdk_ver }}"
+            echo "  pebble-tool: ${CURRENT_TOOL} → ${UPSTREAM_TOOL}"
+            echo "  SDK:         ${CURRENT_SDK} → ${UPSTREAM_SDK}"
           fi
 
       - name: Create bump PR
         if: steps.check.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_TOOL: ${{ steps.upstream.outputs.tool_ver }}
+          NEW_SDK: ${{ steps.upstream.outputs.sdk_ver }}
+          OLD_TOOL: ${{ steps.current.outputs.tool_ver }}
+          OLD_SDK: ${{ steps.current.outputs.sdk_ver }}
         run: |
-          NEW_TOOL="${{ steps.upstream.outputs.tool_ver }}"
-          NEW_SDK="${{ steps.upstream.outputs.sdk_ver }}"
           BRANCH="bump/pebble-tool-${NEW_TOOL}-sdk-${NEW_SDK}"
 
           git config user.name "github-actions[bot]"
@@ -79,8 +94,8 @@ jobs:
 
           | Component | Old | New |
           |---|---|---|
-          | pebble-tool | ${{ steps.current.outputs.tool_ver }} | ${NEW_TOOL} |
-          | Pebble SDK | ${{ steps.current.outputs.sdk_ver }} | ${NEW_SDK} |
+          | pebble-tool | ${OLD_TOOL} | ${NEW_TOOL} |
+          | Pebble SDK | ${OLD_SDK} | ${NEW_SDK} |
 
           Merging this PR will trigger the build workflow. Tag the resulting commit to publish a release." \
             --head "${BRANCH}" \
