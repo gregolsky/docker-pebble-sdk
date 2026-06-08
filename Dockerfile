@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     make \
     libc-dev \
+    libpixman-1-0 \
     libsdl2-2.0-0 \
     imagemagick \
     python3-dev \
@@ -60,11 +61,12 @@ ENV PATH="/opt/uv-tools/pebble-tool/bin:/home/pebble/.local/bin:${PATH}"
 
 # Install pebble-tool via uv
 RUN if [ -n "$PEBBLE_TOOL_VERSION" ]; then \
-      uv tool install "pebble-tool==${PEBBLE_TOOL_VERSION}" --python "${PEBBLE_PYTHON_VERSION}"; \
+      uv tool install "pebble-tool==${PEBBLE_TOOL_VERSION}" --with pip --python "${PEBBLE_PYTHON_VERSION}"; \
     else \
-      uv tool install pebble-tool --python "${PEBBLE_PYTHON_VERSION}"; \
+      uv tool install pebble-tool --with pip --python "${PEBBLE_PYTHON_VERSION}"; \
     fi \
-    && pebble --version
+    && pebble --version \
+    && python3 -m pip --version
 
 # Stage 3: install Pebble SDK (large layer — ARM toolchain + SDK headers)
 FROM pebble-install AS sdk-install
