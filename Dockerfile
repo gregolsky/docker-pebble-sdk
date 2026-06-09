@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc-dev \
     libpixman-1-0 \
     libsdl2-2.0-0 \
+    libsndio7.0 \
     imagemagick \
     python3-dev \
     libffi-dev \
