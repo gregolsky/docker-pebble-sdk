@@ -54,8 +54,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          provenance: false   # signed provenance is attached below instead
-          sbom: true
+          provenance: false   # no BuildKit attestations: they make per-registry digests differ; signed provenance is attached in the merge job
           build-args: |
             PEBBLE_TOOL_VERSION=${{ env.PEBBLE_TOOL_VERSION }}
             PEBBLE_SDK_VERSION=${{ env.PEBBLE_SDK_VERSION }}
