@@ -5,7 +5,7 @@
 #   LATEST_SDK_VER=a.b.c
 set -euo pipefail
 
-semver_re='^[0-9]+(\.[0-9]+){1,3}(-[A-Za-z0-9.]+)?$'
+semver_re='^[0-9]+(\.[0-9]+){1,3}$'
 
 validate() {
   local name="$1" val="$2"

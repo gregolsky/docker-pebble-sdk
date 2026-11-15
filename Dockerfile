@@ -1,7 +1,10 @@
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Pinned by digest; Dependabot (docker ecosystem) bumps these.
+FROM ghcr.io/astral-sh/uv:0.7.8@sha256:0178a92d156b6f6dbe60e3b52b33b421021f46d634aa9f81f42b91445bb81cdf AS uv
+
 # Stage 1: base OS + system packages
-FROM debian:bookworm-slim AS base
+FROM debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc AS base
 
 ARG DEBIAN_FRONTEND
 ARG NODE_MAJOR=22
@@ -10,8 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     gnupg \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-       | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /tmp/nodesource.key \
+    # exactly one primary key, and it must be NodeSource's
+    && [ "$(gpg --show-keys --with-colons /tmp/nodesource.key | awk -F: '/^pub/{getline; print $10}')" \
+         = "6F71F525282841EEDAF851B42F59B5F99B1BE0B4" ] \
+    && gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg /tmp/nodesource.key \
+    && rm /tmp/nodesource.key \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
        > /etc/apt/sources.list.d/nodesource.list \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -39,16 +46,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Stage 2: install uv + pebble-tool
 FROM base AS pebble-install
 
-ARG UV_VERSION=0.7.8
 ARG PEBBLE_TOOL_VERSION
 ARG PEBBLE_PYTHON_VERSION=3.13
 
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV PATH="/opt/uv-tools/pebble-tool/bin:/root/.local/bin:${PATH}"
 
-# Install uv
-RUN curl -LsSf "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-installer.sh" \
-    | UV_INSTALL_DIR=/usr/local/bin sh
+COPY --from=uv /uv /uvx /usr/local/bin/
 
 # Create non-root user
 RUN useradd -m -u 1000 -s /bin/bash pebble
